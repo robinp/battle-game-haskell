@@ -1,7 +1,7 @@
 data HP = HP Int
      deriving Show
 
-data Firepower = Firepower Int
+data Firepower = Firepower { runFp :: Int }
      deriving Show
 
 data Unit = Unit { remainingHp :: HP, firepower :: Firepower }
@@ -10,6 +10,9 @@ data Unit = Unit { remainingHp :: HP, firepower :: Firepower }
 damage :: Unit -> Int -> Maybe Unit
 damage u @ Unit { remainingHp = HP hp } dmg =
        cond (hp > dmg) $ u { remainingHp = HP $ hp - dmg }
+
+shoot :: Unit -> Unit -> Maybe Unit
+shoot a b = damage b (runFp $ firepower a) 
 
 --
 -- may Hoogle for it
@@ -26,6 +29,7 @@ repeatBind n ma f = foldl (>>=) ma (replicate n f)
 
 main :: IO ()
 main = do
-     let unit = Unit (HP 100) (Firepower 5)
-     let unit' = repeatBind 5 (Just unit) (flip damage 5) 
-     putStrLn $ show (remainingHp unit) ++ " --> " ++ show (fmap remainingHp unit')
+     let unit1 = Unit (HP 100) (Firepower  5)
+     let unit2 = Unit (HP  50) (Firepower 12)
+     let unit2' = repeatBind 5 (Just unit2) (shoot unit1) 
+     putStrLn $ show (remainingHp unit2) ++ " --> " ++ show (fmap remainingHp unit2')
