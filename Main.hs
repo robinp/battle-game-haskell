@@ -8,16 +8,24 @@ data Unit = Unit { remainingHp :: HP, firepower :: Firepower }
      deriving Show
 
 damage :: Unit -> Int -> Maybe Unit
-damage u @ (Unit (HP hp) _) dmg =
-       if hp > dmg
-       	  then Just $ u { remainingHp = HP $ hp - dmg }
-	  else Nothing
+damage u @ Unit { remainingHp = HP hp } dmg =
+       cond (hp > dmg) $ u { remainingHp = HP $ hp - dmg }
 
-repeatM :: (Monad m) => Int -> m a -> (a -> m a) -> m a
-repeatM n ma f = foldl (>>=) ma (replicate n f)
+--
+-- may Hoogle for it
+--
+cond :: Bool -> a -> Maybe a
+cond True a = Just a
+cond False a = Nothing
+
+--
+-- Binds repeatedly
+--
+repeatBind :: (Monad m) => Int -> m a -> (a -> m a) -> m a
+repeatBind n ma f = foldl (>>=) ma (replicate n f)
 
 main :: IO ()
 main = do
      let unit = Unit (HP 100) (Firepower 5)
-     let unit' = repeatM 5 (Just unit) (flip damage 5) 
+     let unit' = repeatBind 5 (Just unit) (flip damage 5) 
      putStrLn $ show (remainingHp unit) ++ " --> " ++ show (fmap remainingHp unit')
