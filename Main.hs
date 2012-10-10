@@ -19,6 +19,10 @@ instance Show Unit where
 
 type Logged = Writer String
 
+--
+-- Battling
+--
+
 damage :: Unit -> Int -> Maybe Unit
 damage u @ Unit { remainingHp = HP hp } dmg =
        cond (hp > dmg) $ u { remainingHp = HP $ hp - dmg }
@@ -33,7 +37,7 @@ fight :: Unit -> Unit -> ErrorT Unit Logged Unit
 fight x y = 
   let 
     damagedY = x `shoot` y
-    xWon = writer (Left x, "the better won")
+    xWon = Left x `logged` "the better won"
   in 
    maybe (ErrorT xWon) (\y' -> swapT $ fight y' x) damagedY
   
@@ -41,6 +45,9 @@ fight x y =
 --
 -- Helpers
 --
+logged :: a -> String -> Logged a 
+logged x s = writer (x, s) 
+
 swap :: Either a b -> Either b a
 swap (Left x)  = Right x 
 swap (Right x) = Left x
