@@ -1,3 +1,7 @@
+import Control.Monad.Writer
+import Control.Monad.Error
+import Control.Monad.Identity
+
 data HP = HP Int
      deriving Show
 
@@ -13,6 +17,8 @@ instance Show Unit where
     in
       "Unit '" ++ name u ++ "' [HP:" ++ show hp ++ " FP:" ++ show fp ++ "]"
 
+type Logged = Writer String
+
 damage :: Unit -> Int -> Maybe Unit
 damage u @ Unit { remainingHp = HP hp } dmg =
        cond (hp > dmg) $ u { remainingHp = HP $ hp - dmg }
@@ -23,10 +29,13 @@ shoot x y = damage y (runFp $ firepower x)
 --
 -- fight has a bias, the left unit gets to shoot first
 --
-fight :: Unit -> Unit -> Either Unit Unit
+fight :: Unit -> Unit -> ErrorT Unit Logged Unit
 fight x y = 
-  let damagedY = x `shoot` y
-  in maybe (Left x) (\y' -> swap $ fight y' x) damagedY
+  let 
+    damagedY = x `shoot` y
+    xWon = writer (Left x, "the better won")
+  in 
+   maybe (ErrorT xWon) (\y' -> swapT $ fight y' x) damagedY
   
 
 --
@@ -35,6 +44,9 @@ fight x y =
 swap :: Either a b -> Either b a
 swap (Left x)  = Right x 
 swap (Right x) = Left x
+
+swapT :: (Monad m) => ErrorT a m b -> ErrorT b m a
+swapT e = mapErrorT (liftM swap) e
 
 cond :: Bool -> a -> Maybe a
 cond True a = Just a
@@ -51,4 +63,5 @@ main = do
      let unit1 = Unit "Fizz" (HP 100) (Firepower  5)
      let unit2 = Unit "Buzz" (HP  50) (Firepower 12)
      let winner = unit1 `fight` unit2
-     putStrLn $ show unit1 ++ " vs " ++ show unit2 ++ "  --> " ++ show winner 
+     let winnerText = show $ runIdentity $ runWriterT $ runErrorT $ winner
+     putStrLn $ show unit1 ++ " vs " ++ show unit2 ++ "  --> " ++ winnerText
