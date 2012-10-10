@@ -4,8 +4,14 @@ data HP = HP Int
 data Firepower = Firepower { runFp :: Int }
      deriving Show
 
-data Unit = Unit { remainingHp :: HP, firepower :: Firepower }
-     deriving Show
+data Unit = Unit { name :: String, remainingHp :: HP, firepower :: Firepower }
+
+instance Show Unit where
+  show u =
+    let HP hp        = remainingHp u
+        Firepower fp = firepower u
+    in
+      "Unit '" ++ name u ++ "' [HP:" ++ show hp ++ " FP:" ++ show fp ++ "]"
 
 damage :: Unit -> Int -> Maybe Unit
 damage u @ Unit { remainingHp = HP hp } dmg =
@@ -42,7 +48,7 @@ repeatBind n ma f = foldl (>>=) ma (replicate n f)
 --
 main :: IO ()
 main = do
-     let unit1 = Unit (HP 100) (Firepower  5)
-     let unit2 = Unit (HP  50) (Firepower 12)
+     let unit1 = Unit "Fizz" (HP 100) (Firepower  5)
+     let unit2 = Unit "Buzz" (HP  50) (Firepower 12)
      let winner = unit1 `fight` unit2
      putStrLn $ show unit1 ++ " vs " ++ show unit2 ++ "  --> " ++ show winner 
