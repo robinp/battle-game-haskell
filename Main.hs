@@ -18,7 +18,7 @@ instance Show Unit where
     in
       "Unit '" ++ name u ++ "' [HP:" ++ show hp ++ " FP:" ++ show fp ++ "]"
 
-type Logged = Writer String
+type Logged = Writer [String]
 
 --
 -- Battling
@@ -50,7 +50,7 @@ maybeT :: (Functor m) => b -> (a -> b) -> MaybeT m a -> m b
 maybeT fallback f ma = fmap (maybe fallback f) $ runMaybeT ma 
 
 logged :: a -> String -> Logged a 
-logged x s = writer (x, s) 
+logged x s = writer (x, [s]) 
 
 swap :: Either a b -> Either b a
 swap (Left x)  = Right x 
