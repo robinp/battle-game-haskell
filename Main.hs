@@ -1,6 +1,7 @@
 import Control.Monad.Writer
-import Control.Monad.Error
 import Control.Monad.Identity
+import Control.Monad.Trans.Error
+import Control.Monad.Trans.Maybe
 
 data HP = HP Int
      deriving Show
@@ -27,8 +28,8 @@ damage :: Unit -> Int -> Maybe Unit
 damage u @ Unit { remainingHp = HP hp } dmg =
        cond (hp > dmg) $ u { remainingHp = HP $ hp - dmg }
 
-shoot :: Unit -> Unit -> Maybe Unit
-shoot x y = damage y (runFp $ firepower x) 
+shoot :: Unit -> Unit -> MaybeT Logged Unit
+shoot x y = MaybeT $ damage y (runFp $ firepower x) `logged` (name x ++ " shoots " ++ name y)
 
 --
 -- fight has a bias, the left unit gets to shoot first
@@ -37,14 +38,17 @@ fight :: Unit -> Unit -> ErrorT Unit Logged Unit
 fight x y = 
   let 
     damagedY = x `shoot` y
-    xWon = Left x `logged` "the better won"
-  in 
-   maybe (ErrorT xWon) (\y' -> swapT $ fight y' x) damagedY
-  
-
+    xWon = Left x `logged` (name x ++ " survived")
+  in ErrorT $ do 
+    dy <- runMaybeT damagedY
+    maybe xWon (\y' -> runErrorT $ swapT $ fight y' x) dy
+    
 --
 -- Helpers
 --
+maybeT :: (Functor m) => b -> (a -> b) -> MaybeT m a -> m b
+maybeT fallback f ma = fmap (maybe fallback f) $ runMaybeT ma 
+
 logged :: a -> String -> Logged a 
 logged x s = writer (x, s) 
 
